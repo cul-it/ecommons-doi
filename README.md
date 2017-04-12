@@ -14,12 +14,12 @@ Eventually, this will be migrated into the ETDs processing workflow as an automa
 
 *Run once if you don't have these scripts on your computer:*
 
-1. Clone or download a copy of this code repository locally: `$ git clone https://github.com/cmh2166/ETDstoDOIs.git`
+1. Clone or download a copy of this code repository locally: `$ git clone https://github.com/cul-it/ecommons-doi.git`
 2. Change into the directory where this is cloned, then install requirements using pip (run this command in a command line interface/shell and in the directory where you stored the code repository): `$ pip install -r requirements.txt`
 
 *Run before each time you start the ETD to DOI process:*
 
-2. Change into the directory where these scripts live on your computer: `$ cd ~/Tools/ETDstoDOIs` (change the last part to the path for your computer)
+2. Change into the directory where these scripts live on your computer: `$ cd ~/Tools/ecommons-doi` (change the last part to the path for your computer)
 3. Pull latest changes from GitHub repository for this script: `$ git pull origin master`
 4. Grab an unaltered copy of the eCommons CSV metadata/collection export that you wish to work off of. **The column names need to match the eCommons field names.** Fields and dates out of scope for this workflow will be removed as part of the script. It's easiest if you move the eCommons export CSV into the `data` directory in this repository (`data` is ignored by git, so will not be overwritten by `git pull origin master` and will not appear if you push anything back to GitHub).
 
@@ -35,9 +35,9 @@ example:
 Example of the full process for this option:
 
 ```bash
-$ cd ~/Tools/ETDstoDOIs
+$ cd ~/Tools/ecommons-doi
 $ git pull origin master
- From https://github.com/cmh2166/ETDstoDOIs
+ From https://github.com/cul-it/ecommons-doi.git
   * branch            master     -> FETCH_HEAD
  Already up-to-date.
  # Metadata Export from https://ecommons.cornell.edu/handle/1813/47
@@ -58,9 +58,9 @@ $ python etddoi.py -u 'username' -p 'password' -s '10.5072/FK2' -d '2017-01' dat
 Example of the full process for this option:
 
 ```bash
-$ cd ~/Tools/ETDstoDOIs
+$ cd ~/Tools/ecommons-doi
 $ git pull origin master
- From https://github.com/cmh2166/ETDstoDOIs
+ From https://github.com/cul-it/ecommons-doi.git
   * branch            master     -> FETCH_HEAD
  Already up-to-date.
  # Metadata Export from https://ecommons.cornell.edu/handle/1813/47
@@ -89,12 +89,12 @@ If you made a mistake on DOIs metadata that have already been created, you can u
 
 *Run once if you don't have these scripts on your computer:*
 
-1. Clone or download a copy of this code repository locally: `$ git clone https://github.com/cmh2166/ETDstoDOIs.git`
+1. Clone or download a copy of this code repository locally: `$ git clone https://github.com/cul-it/ecommons-doi.git`
 2. Change into the directory where this is cloned, then install requirements using pip (run this command in a command line interface/shell and in the directory where you stored the code repository): `$ pip install -r requirements.txt`
 
 *Run before each time you start the ETD to DOI process:*
 
-2. Change into the directory where these scripts live on your computer: `$ cd ~/Tools/ETDstoDOIs` (change the last part to the path for your computer)
+2. Change into the directory where these scripts live on your computer: `$ cd ~/Tools/ecommons-doi` (change the last part to the path for your computer)
 3. Pull latest changes from GitHub repository for this script: `$ git pull origin master`
 4. Grab a copy of the eCommons CSV metadata/collection export that you wish to work off of. **The column names need to match the eCommons field names.** Fields and dates out of scope for this workflow will be removed as part of the script. It's easiest if you move the eCommons export CSV into the `data` directory in this repository (`data` is ignored by git, so will not be overwritten by `git pull origin master` and will not appear if you push anything back to GitHub). Edit this CSV only where you need to make a change to the DOI metadata using the eCommons CSV headers - as one example, if you generated DOIs with the wrong handles, and the eCommons export with handles are correct, the new export handles will overwrite the old ones.
 
@@ -110,9 +110,9 @@ example:
 Example of the full process for this option:
 
 ```bash
-$ cd ~/Tools/ETDstoDOIs
+$ cd ~/Tools/ecommons-doi
 $ git pull origin master
- From https://github.com/cmh2166/ETDstoDOIs
+ From https://github.com/cul-it/ecommons-doi.git
   * branch            master     -> FETCH_HEAD
  Already up-to-date.
  # Metadata Export from https://ecommons.cornell.edu/handle/1813/47
