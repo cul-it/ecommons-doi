@@ -98,7 +98,7 @@ If you made a mistake on DOIs metadata that have already been created, you can u
 3. Pull latest changes from GitHub repository for this script: `$ git pull origin master`
 4. Grab a copy of the eCommons CSV metadata/collection export that you wish to work off of. **The column names need to match the eCommons field names.** Fields and dates out of scope for this workflow will be removed as part of the script. It's easiest if you move the eCommons export CSV into the `data` directory in this repository (`data` is ignored by git, so will not be overwritten by `git pull origin master` and will not appear if you push anything back to GitHub). Edit this CSV only where you need to make a change to the DOI metadata using the eCommons CSV headers - as one example, if you generated DOIs with the wrong handles, and the eCommons export with handles are correct, the new export handles will overwrite the old ones.
 
-### Run the ETD Generation Job:
+### Run the ETD Edit (Metadata or Target URL [handle]) Job:
 
 5. Run the following script in the top level of the directory where these scripts live, with the appropriate options filled in (including a required -m to update metadata or -t to update the taret URL (i.e. the handle the DOI points to). To not overwhelm the EZID servers, we don't update both at the same time):
 `$ python editdoi.py -m|t -u 'EZID username' -p 'EZID password' -d 'Issue Date on or after to edit record DOIs in form YYYY-MM' /path/to/the/eCommonsCSVexportFile.csv`
