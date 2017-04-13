@@ -46,10 +46,9 @@ def editDOItarget(data, workingdir, args):
         unpw = args.username + ":" + args.password
         doish = 'doi:' + existing_doiURL.replace('http://doi.org/', '')
         # Run python ezid.py username:password update doi:doi-id _target http://newhandle-targetURL.com
-        target_update_proc = ['python', 'ezid.py', unpw, 'update', doish, ' _target ', handle]
+        target_update_proc = ['python', 'ezid.py', unpw, 'update', doish, '_target', handle]
         try:
-            out = subprocess.check_output(target_update_proc)
-            t = 0, out
+            subprocess.check_output(target_update_proc)
         except:
             print('Error with EZID script (ezid.py). Check messages above.')
             exit()
