@@ -98,16 +98,18 @@ If you made a mistake on DOIs metadata that have already been created, you can u
 3. Pull latest changes from GitHub repository for this script: `$ git pull origin master`
 4. Grab a copy of the eCommons CSV metadata/collection export that you wish to work off of. **The column names need to match the eCommons field names.** Fields and dates out of scope for this workflow will be removed as part of the script. It's easiest if you move the eCommons export CSV into the `data` directory in this repository (`data` is ignored by git, so will not be overwritten by `git pull origin master` and will not appear if you push anything back to GitHub). Edit this CSV only where you need to make a change to the DOI metadata using the eCommons CSV headers - as one example, if you generated DOIs with the wrong handles, and the eCommons export with handles are correct, the new export handles will overwrite the old ones.
 
-### Run the ETD Generation Job in 1 Process:
+### Run the ETD Generation Job:
 
-5. Run the following script in the top level of the directory where these scripts live, with the appropriate options filled in:
-`$ python editdoi.py -u 'EZID username' -p 'EZID password' -d 'Issue Date on or after to edit record DOIs in form YYYY-MM' /path/to/the/eCommonsCSVexportFile.csv`
-example:
-`$ python editdoi.py -u 'username' -p 'password' -d '2016-12' data/1813-47.csv`
+5. Run the following script in the top level of the directory where these scripts live, with the appropriate options filled in (including a required -m to update metadata or -t to update the taret URL (i.e. the handle the DOI points to). To not overwhelm the EZID servers, we don't update both at the same time):
+`$ python editdoi.py -m|t -u 'EZID username' -p 'EZID password' -d 'Issue Date on or after to edit record DOIs in form YYYY-MM' /path/to/the/eCommonsCSVexportFile.csv`
+example to update the DOI metadata:
+`$ python editdoi.py -m -u 'username' -p 'password' -d '2016-12' data/1813-47.csv`
+example to update the DOI target URL:
+`$ python editdoi.py -t -u 'username' -p 'password' -d '2016-12' data/1813-47.csv`
 6. Let the script run. It will create a directory called `data/YYYYMMDD_HHMMSS/` (named based off when the script was run). In that directory will be a file called `EC.csv` (the eCommons CSV edited or with changes for pushing to DOI metadata) and the ANVL text files (updated for metadata changes). Wait for the script to complete before opening these files.
-7. Once complete, review `data/YYYYMMDD_HHMMSS/EC_updateReview.csv` for post-update further review as needed.
+7. Once complete, review `data/YYYYMMDD_HHMMSS/` files for post-update further review as needed.
 
-Example of the full process for this option:
+Example of the full process to edit DOI metadata:
 
 ```bash
 $ cd ~/Tools/ecommons-doi
@@ -118,7 +120,22 @@ $ git pull origin master
  # Metadata Export from https://ecommons.cornell.edu/handle/1813/47
  # Manually Downloaded as '1813-47.csv to ~/Downloads'
 $ mv ~/Downloads/1813-47.csv data/
-$ python editdoi.py -u 'username' -p 'password' -d '2016-12' data/1813-47.csv
+$ python editdoi.py -m -u 'username' -p 'password' -d '2016-12' data/1813-47.csv
+... (DOI update notification output)
+```
+
+Example of the full process to edit DOI target URLs:
+
+```bash
+$ cd ~/Tools/ecommons-doi
+$ git pull origin master
+ From https://github.com/cul-it/ecommons-doi.git
+  * branch            master     -> FETCH_HEAD
+ Already up-to-date.
+ # Metadata Export from https://ecommons.cornell.edu/handle/1813/47
+ # Manually Downloaded as '1813-47.csv to ~/Downloads'
+$ mv ~/Downloads/1813-47.csv data/
+$ python editdoi.py -t -u 'username' -p 'password' -d '2016-12' data/1813-47.csv
 ... (DOI update notification output)
 ```
 
