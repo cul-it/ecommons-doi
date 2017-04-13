@@ -81,6 +81,10 @@ def main():
     skipDOItest = True
     workingdir = csvparse.csvparse(args.datafile, args.date, skipDOItest)
     output = doiparse.doiparse(workingdir)
+    print("metadata:")
+    print(args.metadata)
+    print("target")
+    print(args.target)
     if args.metadata:
         editDOImetadata(output, workingdir, args)
     elif args.target:
