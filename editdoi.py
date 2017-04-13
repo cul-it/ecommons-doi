@@ -48,7 +48,8 @@ def editDOItarget(data, workingdir, args):
         # Run python ezid.py username:password update doi:doi-id _target http://newhandle-targetURL.com
         target_update_proc = ['python', 'ezid.py', unpw, 'update', doish, ' _target ', handle]
         try:
-            subprocess.check_output(target_update_proc)
+            out = subprocess.check_output(target_update_proc)
+            t = 0, out
         except:
             print('Error with EZID script (ezid.py). Check messages above.')
             exit()
@@ -81,10 +82,6 @@ def main():
     skipDOItest = True
     workingdir = csvparse.csvparse(args.datafile, args.date, skipDOItest)
     output = doiparse.doiparse(workingdir)
-    print("metadata:")
-    print(args.metadata)
-    print("target")
-    print(args.target)
     if args.metadata:
         editDOImetadata(output, workingdir, args)
     elif args.target:
