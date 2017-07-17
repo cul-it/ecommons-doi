@@ -34,13 +34,13 @@ def doiparse(newdir):
         # Title
         try:
             if record['dc.title[en_US]']:
-                output.write('datacite.title: ' + record['dc.title[en_US]'].split(':')[0] + '\n')
+                output.write('datacite.title: ' + record['dc.title[en_US]'] + '\n')
             elif record['dc.title[en]']:
-                output.write('datacite.title: ' + record['dc.title[en]'].split(':')[0] + '\n')
+                output.write('datacite.title: ' + record['dc.title[en]'] + '\n')
             elif record['dc.title[]']:
-                output.write('datacite.title: ' + record['dc.title[]'].split(':')[0] + '\n')
+                output.write('datacite.title: ' + record['dc.title[]'] + '\n')
             elif record['dc.title']:
-               output.write('datacite.title: ' + record['dc.title'].split(':')[0] + '\n')
+               output.write('datacite.title: ' + record['dc.title'] + '\n')
             else:
                 output.write('datacite.title: None')
                 with open(newdir + 'notitlesETDs.txt', 'a') as fother:
