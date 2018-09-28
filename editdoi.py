@@ -19,7 +19,7 @@ def editDOImetadata(data, workingdir, args):
             print("Record %s doesn't have DOI currently to edit." % str(recID))
             pass
         unpw = args.username + ":" + args.password
-        doish = 'doi:' + existing_doiURL.replace('http://doi.org/', '')
+        doish = 'doi:' + existing_doiURL.replace('https://doi.org/', '')
         meta = workingdir + recID + '.txt'
         # Run python ezid.py username:password update doi:doi-id datacite @ANVLfile.txt
         meta_update_proc = ['python', 'ezid.py', unpw, 'update', doish, ' datacite @', meta]
@@ -44,7 +44,7 @@ def editDOItarget(data, workingdir, args):
             print("Record %s doesn't have DOI currently to edit." % str(recID))
             pass
         unpw = args.username + ":" + args.password
-        doish = 'doi:' + existing_doiURL.replace('http://doi.org/', '')
+        doish = 'doi:' + existing_doiURL.replace('https://doi.org/', '')
         # Run python ezid.py username:password update doi:doi-id _target http://newhandle-targetURL.com
         target_update_proc = ['python', 'ezid.py', unpw, 'update', doish, '_target', handle]
         try:
