@@ -20,10 +20,10 @@ def mintdoi(data, workingdir, args):
         except:
             print('Error with EZID script (ezid.py). Check messages above.')
             exit()
-        doiURL = EZIDout.split(' | ')[0].replace('success: doi:', 'https://doi.org/')
+        doiURL = EZIDout
         print(recID, doiURL)
         with open(meta, 'a') as fh:
-            fh.write(doiURL)
+            fh.write(str(doiURL))
         record['dc.identifier.doi'] = doiURL
     print('finished minting DOIs.')
     with open(workingdir + "EC_reviewOnly.csv", 'w') as csvfile:
