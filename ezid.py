@@ -64,7 +64,7 @@ import urllib
 import urllib2
 
 KNOWN_SERVERS = {
-  "p": "http://ezid.cdlib.org"
+  "p": "https://ez.datacite.org"
 }
 
 OPERATIONS = {
@@ -156,6 +156,7 @@ def issueRequest (path, method, data=None, returnHeaders=False,
   request.get_method = lambda: method
   if data:
     request.add_header("Content-Type", "text/plain; charset=UTF-8")
+    request.add_header("Authorization","Basic AUTHHERE")
     request.add_data(data.encode("UTF-8"))
   if _cookie: request.add_header("Cookie", _cookie)
   try:
@@ -204,7 +205,7 @@ def printAnvlResponse (response, sortLines=False):
 
 parser = optparse.OptionParser(formatter=MyHelpFormatter())
 parser.add_option("-d", action="store_true", dest="decode", default=False)
-parser.add_option("-e", action="store", dest="outputEncoding", default=None)
+parser.add_option("-e", action="store", dest="outputEncoding", default="UTF-8")
 parser.add_option("-o", action="store_true", dest="oneLine", default=False)
 parser.add_option("-t", action="store_true", dest="formatTimestamps",
   default=False)
