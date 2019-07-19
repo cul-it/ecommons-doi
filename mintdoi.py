@@ -1,19 +1,26 @@
-#! /usr/bin/env python
+#! /usr/bin/env python2.7
 """Run in same working directory as files. See README.md for usage examples."""
 from argparse import ArgumentParser
 import sys
 import csv
 import subprocess
+from base64 import b64encode
+
 
 
 def mintdoi(data, workingdir, args):
+
+    
+    
+
     """Call ezid.py to generate DOIs for handles with metadata as ANVL."""
     for record in data:
         recID = record['id']
         # Run python ezid.py username:password mint doi:shoulder @ ANVLfile.txt
-        unpw = args.username + ":" + args.password
-        doish = 'doi:' + args.shoulder
+        #unpw = b64encode(b"%s:%s" % (args.username, args.password)).decode("ascii") 
         meta = workingdir + recID + '.txt'
+        doish = 'doi:' + args.shoulder
+        unpw = args.username + ":" + args.password
         proc = ['python', 'ezid.py', unpw, 'mint', doish, '@', meta]
         try:
             EZIDout = subprocess.check_output(proc)
@@ -49,9 +56,9 @@ def main():
                         help="EZID creation username")
     parser.add_argument("-p", "--password", dest="password",
                         help="EZID creation password.")
-    parser.add_argument("-s", "--shoulder", dest="shoulder",
-                        default="10.5072/FK2",
-                        help="DOI shoulder to use. Format 10.5072/FK2.")
+    parser.add_argument("-s", "--server", dest="shoulder",
+                        default="10.23655",
+                        help="Server defaults to 10.23655 for test. Set shoulder to 10.7298 for production")
     parser.add_argument("workingdir", help="Working directory containing ready \
                         ANVL files.")
 

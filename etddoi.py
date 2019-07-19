@@ -17,9 +17,10 @@ def main():
                         help="EZID creation username")
     parser.add_argument("-p", "--password", dest="password",
                         help="EZID creation password.")
-    parser.add_argument("-s", "--shoulder", dest="shoulder",
-                        default="10.5072/FK2",
-                        help="DOI shoulder to use. Format 10.5072/FK2.")
+    parser.add_argument("-s", "--address", dest="server",
+                        default="https://ez.test.datacite.org",
+                        help="Server defaults to https://ez.test.datacite.org for test. Set server to https://ez.datacite.org for production")
+    
     parser.add_argument("datafile", help="eCommons metadata worked from.")
 
     args = parser.parse_args()

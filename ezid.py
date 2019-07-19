@@ -1,298 +1,301 @@
-#    ! /usr/bin/env python
+#! /usr/bin/env python
 
-'''EZID client: Module to make using EZID easier from python.
+# EZID command line client.  The output is Unicode, with the character
+# encoding being determined by the platform unless the -e option is
+# used.  By default, ANVL responses (currently, that's all responses)
+# are left in %-encoded form.
+#
+# Usage: ezid.py [options] credentials operation...
+#
+#   options:
+#     -d          decode ANVL responses
+#     -e ENCODING output character encoding
+#     -o          one line per ANVL value: convert newlines to spaces
+#     -t          format timestamps
+#
+#   credentials:
+#     username:password
+#     sessionid (as returned by previous login)
+#     - (none)
+#
+#   operation:
+#     m[int] shoulder [element value ...]
+#     c[reate] identifier [element value ...]
+#     v[iew] identifier
+#     u[pdate] identifier [element value ...]
+#     d[elete] identifier
+#     login
+#     logout
+#     s[tatus] [*|subsystemlist]
+#
+# In the above, if an element is "@", the subsequent value is treated
+# as a filename and metadata elements are read from the named
+# ANVL-formatted file.  For example, if file metadata.txt contains:
+#
+#   erc.who: Proust, Marcel
+#   erc.what: Remembrance of Things Past
+#   erc.when: 1922
+#
+# then an identifier with that metadata can be minted by invoking:
+#
+#   ezid.py username:password mint ark:/99999/fk4 @ metadata.txt
+#
+# Otherwise, if a value has the form "@filename", a (single) value is
+# read from the named file.  For example, if file metadata.xml
+# contains a DataCite XML record, then an identifier with that record
+# as the value of the 'datacite' element can be minted by invoking:
+#
+#   ezid.py username:password mint doi:10.5072/FK2 datacite @metadata.xml
+#
+# In both of the above cases, the contents of the named file are
+# assumed to be UTF-8 encoded.  And in both cases, the interpretation
+# of @ can be defeated by doubling it.
+#
+# Greg Janee <gjanee@ucop.edu>
+# May 2013
 
-Can use this as a client command line program or pull the EZIDClient object
-into other programs
-Following the samples from: https://ezid.cdlib.org/doc/apidoc.html
-'''
-from __future__ import print_function
-
-from future import standard_library
-standard_library.install_aliases()
-from builtins import range
-from builtins import object
-__author__ = "Mark Redar"
-__copyright__ = "Copyright 2011, The Regents of the University of California"
-__credits__ = ["Greg Janee", ]
-__license__ = "BSD"
-__version__ = "0.3"
-__maintainer__ = "Mark Redar"
-__email__ = "mark.redar@ucop.edu"
-__status__ = "Prototype"
-
+import codecs
+import optparse
 import re
 import sys
+import time
 import types
-import urllib.request, urllib.error, urllib.parse
-import requests
+import urllib
+import urllib2
 from base64 import b64encode
 
-__all__=('EZIDClient', 'formatAnvlFromDict', 'formatAnvlFromList')
 
-SERVER = "https://ez.test.datacite.org"
-
-operations = {
-    # operation : number of arguments
-    "mint" : lambda l: l%2 == 1,
-    "create" : lambda l: l%2 == 1,
-    "view" : 1,
-    "update" : lambda l: l%2 == 1,
-    "delete" : lambda l: l%2 == 1,
-    "login" : 0,
-    "logout" : 0
+KNOWN_SERVERS = {
+  "p": "https://"
 }
 
-_usageText = """Usage: client credentials operation...
+OPERATIONS = {
+  # operation: number of arguments (possibly variable)
+  "mint": lambda l: l%2 == 1,
+  "create": lambda l: l%2 == 1,
+  "view": 1,
+  "update": lambda l: l%2 == 1,
+  "delete": 1,
+  "login": 0,
+  "logout": 0,
+  "status": lambda l: l in [0, 1]
+}
 
-    credentials
-        username:password
-        sessionid (as returned by previous login)
-        - (none)
+USAGE_TEXT = """Usage: ezid.py [options] credentials operation...
 
-    operation
-        m[int] shoulder [label value label value ...]
-        c[reate] identifier [label value label value ...]
-        v[iew] identifier
-        u[pdate] identifier [label value label value ...]
-        d[elete] identifier
-        login
-        logout
+  options:
+    -d          decode ANVL responses
+    -e ENCODING output character encoding
+    -o          one line per ANVL value: convert newlines to spaces
+    -t          format timestamps
+
+  credentials:
+    username:password
+    sessionid (as returned by previous login)
+    - (none)
+
+  operation:
+    m[int] shoulder [element value ...]
+    c[reate] identifier [element value ...]
+    v[iew] identifier
+    u[pdate] identifier [element value ...]
+    d[elete] identifier
+    login
+    logout
+    s[tatus] [*|subsystemlist]
 """
 
-def _usageError ():
-    sys.stderr.write(_usageText)
+# Global variables that are initialized farther down.
+
+_options = None
+_server = None
+_opener = None
+_cookie = None
+
+class MyHelpFormatter (optparse.IndentedHelpFormatter):
+  def format_usage (self, usage):
+    return USAGE_TEXT
+
+class MyHTTPErrorProcessor (urllib2.HTTPErrorProcessor):
+  def http_response (self, request, response):
+    # Bizarre that Python leaves this out.
+    if response.code == 201:
+      return response
+    else:
+      return urllib2.HTTPErrorProcessor.http_response(self, request, response)
+  https_response = http_response
+
+def formatAnvlRequest (args):
+  request = []
+  for i in range(0, len(args), 2):
+    k = args[i]
+    if k == "@":
+      f = codecs.open(args[i+1], encoding="UTF-8")
+      request += [l.strip("\r\n") for l in f.readlines()]
+      f.close()
+    else:
+      if k == "@@":
+        k = "@"
+      else:
+        k = re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), k)
+      v = args[i+1]
+      if v.startswith("@@"):
+        v = v[1:]
+      elif v.startswith("@") and len(v) > 1:
+        f = codecs.open(v[1:], encoding="UTF-8")
+        v = f.read()
+        f.close()
+      v = re.sub("[%\r\n]", lambda c: "%%%02X" % ord(c.group(0)), v)
+      request.append("%s: %s" % (k, v))
+  return "\n".join(request)
+
+def encode (id):
+  return urllib.quote(id, ":/")
+
+def issueRequest (path, method, data=None, returnHeaders=False,
+  streamOutput=False):
+  request = urllib2.Request("%s/%s" % (_server, path))
+  request.get_method = lambda: method
+  if data:
+    request.add_header("Content-Type", "text/plain; charset=UTF-8")
+    request.add_header("Authorization","BASIC "+auth)
+    request.add_data(data.encode("UTF-8"))
+  if _cookie: request.add_header("Cookie", _cookie)
+  try:
+    connection = _opener.open(request)
+    if streamOutput:
+      while True:
+        sys.stdout.write(connection.read(1))
+        sys.stdout.flush()
+    else:
+      response = connection.read()
+      if returnHeaders:
+        return response.decode("UTF-8"), connection.info()
+      else:
+        return response.decode("UTF-8")
+  except urllib2.HTTPError, e:
+    sys.stderr.write("%d %s\n" % (e.code, e.msg))
+    if e.fp != None:
+      response = e.fp.read()
+      if not response.endswith("\n"): response += "\n"
+      sys.stderr.write(str(un+pw))
     sys.exit(1)
 
-def formatAnvlFromDict(d):
-    '''Produce anvl formatted text from a dict of name value pairs.
-    Values should be simple data types
+def printAnvlResponse (response, sortLines=False):
+  response = response.splitlines()
+  if sortLines and len(response) >= 1:
+    statusLine = response[0]
+    response = response[1:]
+    response.sort()
+    response.insert(0, statusLine)
+  for line in response:
+    if _options.formatTimestamps and (line.startswith("_created:") or\
+      line.startswith("_updated:")):
+      ls = line.split(":")
+      line = ls[0] + ": " + time.strftime("%Y-%m-%dT%H:%M:%S",
+        time.localtime(int(ls[1])))
+    if _options.decode:
+      line = re.sub("%([0-9a-fA-F][0-9a-fA-F])",
+        lambda m: chr(int(m.group(1), 16)), line)
+    if _options.oneLine: line = line.replace("\n", " ").replace("\r", " ")
+    if _options.outputEncoding != None:
+      print line.encode(_options.outputEncoding)
+    else:
+      print line
 
-    >>> formatAnvlFromDict({'dc.title':'test title', 'dc.creator':'mer',})
-    'dc.creator: mer\\ndc.title: test title'
-    '''
-    r = []
-    for k, v in list(d.items()):
-        label = re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), k)
-        value = re.sub("[%\r\n]", lambda c: "%%%02X" % ord(c.group(0)), v)
-        r.append("%s: %s" % (label, value))
-    return "\n".join(r)
+# Process command line arguments.
 
-def formatAnvlFromList (l):
-    '''Produce anvl formatted text from a list of name-value pairs.
-    Values should be simple data types.
-    >>> formatAnvlFromList( ['dc.title', 'test title', 'dc.creator', 'mer'])
-    'dc.title: test title\\ndc.creator: mer'
-    '''
+parser = optparse.OptionParser(formatter=MyHelpFormatter())
+parser.add_option("-d", action="store_true", dest="decode", default=False)
+parser.add_option("-e", action="store", dest="outputEncoding", default="UTF-8")
+parser.add_option("-o", action="store_true", dest="oneLine", default=False)
+parser.add_option("-t", action="store_true", dest="formatTimestamps",
+  default=False)
 
-    r = []
-    for i in range(0, len(l), 2):
-        k = re.sub("[%:\r\n]", lambda c: "%%%02X" % ord(c.group(0)), l[i])
-        v = re.sub("[%\r\n]", lambda c: "%%%02X" % ord(c.group(0)), l[i+1])
-        r.append("%s: %s" % (k, v))
-    return "\n".join(r)
+_options, args = parser.parse_args()
+# Simulate selection of the production server (server selection is not
+# supported in this public version of the code).
+args.insert(0, "p")
+if len(args) < 3: parser.error("insufficient arguments")
 
+_server = KNOWN_SERVERS.get(args[0], args[0])
 
-class EZIDClient(object):
-    '''Class for conducting EZID transactions
-    Use http if has session_id, else need credentials for most operations
+_opener = urllib2.build_opener(MyHTTPErrorProcessor())
+if ":" in args[1]:
+  # Credentials must be sent over SSL, unless running locally.
+  if _server.startswith("http:") and args[0] != "l":
+    _server = "https" + _server[4:]
+  h = urllib2.HTTPBasicAuthHandler()
+  h.add_password("EZID", _server, *args[1].split(":", 1))
+  _opener.add_handler(h)
+elif args[1] != "-":
+  _cookie = "sessionid=" + args[1]
 
+operation = filter(lambda o: o.startswith(args[2]), OPERATIONS)
+if len(operation) != 1: parser.error("unrecognized or ambiguous operation")
+operation = operation[0]
 
-    >>> ez=EZIDClient()
-    >>> info = ez.view('ark:/13030/c88s')
-    Traceback (most recent call last):
-        ...
-    HTTPError: HTTP Error 400: BAD REQUEST
-    >>> info = ez.view('ark:/13030/c88s4n09')
-    >>> for x in info.split(b'\\n'):
-    ...     print(x)
-    b'success: ark:/13030/c88s4n09'
-    b'_updated: 1494867658'
-    b'_target: http://content.cdlib.org/ark:/13030/c88s4n09/'
-    b'_profile: dc'
-    b'dc.publisher: San Jose State University Special Collections & Archives'
-    b'_export: yes'
-    b'dc.date: 1957'
-    b'_owner: cdldsc'
-    b'dc.creator: Wang Shifu'
-    b'_ownergroup: cdldsc'
-    b'_created: 1302192449'
-    b'_status: unavailable'
-    b'dc.title: "The Romance of the West Chamber," a Classic of Chinese Literature'
-    b''
-    >>> sid = ez.login()
-    Traceback (most recent call last):
-        ...
-    HTTPError: 401 Client Error: UNAUTHORIZED for url: https://ezid.cdlib.org/login
-    >>> ark = ez.mint('ark:/99999/fk4')
-    Traceback (most recent call last):
-        ...
-    HTTPError: 401 Client Error: UNAUTHORIZED for url: https://ezid.cdlib.org/login
-    '''
-    def __init__(self, server=SERVER, proxy=None, credentials=None, session_id=None):
-        self._proxy = proxy # dict of http, https proxies
-        proxy_handler = None
-        if self._proxy:
-            proxy_handler = urllib.request.ProxyHandler(self._proxy)
-            self._opener = urllib.request.build_opener(proxy_handler)
-        else:
-            self._opener = urllib.request.build_opener()
-        self._server = server
-        self._credentials = credentials # dict of username, password
-        self._session_id = session_id
-        # self._cookie = None
-        # if self._session_id:
-        #     self._cookie = "sessionid=" + session_id
-        # if self._credentials:
-        #     h = urllib.request.HTTPBasicAuthHandler()
-        #     h.add_password("EZID", self._server, self._credentials['username'], self._credentials['password'])
-        #     self._opener.add_handler(h)
+un = args[1].split(":")[0]
+pw = args[1].split(":")[1]
+auth = b64encode(b"%s:%s" % (un, pw)).decode("ascii") 
+args = args[3:]
 
-    @property
-    def session_id(self):
-        return self._session_id
+if (type(OPERATIONS[operation]) is int and\
+  len(args) != OPERATIONS[operation]) or\
+  (type(OPERATIONS[operation]) is types.LambdaType and\
+  not OPERATIONS[operation](len(args))):
+  parser.error("incorrect number of arguments for operation")
 
-    @session_id.setter
-    def session_id(self, sid):
-        self._session_id = sid
-        if self._session_id:
-            self._cookie = "sessionid=" + self._session_id
+# Perform the operation.
 
-    def _get_request(self, request, login=False):
-        try:
-            c = self._opener.open(request)
-        except urllib.error.HTTPError as e:
-            print(e)
-            raise
-        output = c.read()
-        #if not output.endswith(b"\n"): output += "\n"
-        if login:
-            output = c.info()["set-cookie"].split(";")[0].split("=")[1]
-        return output.decode("utf-8")
-
-    def view(self, identifier):
-        '''View an id. If id is public, no login or session id required
-        for public ids.
-        '''
-        url = "%s/id/%s" % (self._server, identifier)
-        request = urllib.request.Request(url)
-        return self._get_request(request)
-
-    # def login(self):
-    #     '''Login, caching session id
-    #     '''
-    #     url = "%s/%s" % (self._server, 'login')
-    #     auth = None
-    #     if self._credentials:
-    #         username = self._credentials.get('username', '')
-    #         password = self._credentials.get('password', '')
-    #         auth = (username, password)
-    #     res = requests.get(url, auth=auth)
-    #     res.raise_for_status()
-    #     self.session_id = res.headers.get('Set-Cookie').split(";")[0].split("=")[1]
-    #     return self.session_id
-
-    # def logout(self):
-    #     '''logout, caching session id
-    #     '''
-    #     request = urllib.request.Request("%s/%s" % (self._server, 'logout'))
-    #     self.session_id = self._get_request(request)
-    #     return self.session_id
-
-    def update(self, identifier, data):
-        if not self.session_id:
-            self.session_id = self.login()
-        request = urllib.request.Request("%s/id/%s" % (self._server, identifier))
-        request.get_method = lambda: "POST"
-        request.add_header("Content-Type", "text/plain; charset=UTF-8")
-        request.data = formatAnvlFromDict(data).encode("UTF-8")
-        return self._get_request(request)
-
-    def create(self, identifier, data=None):
-        if not self.session_id:
-            self.session_id = self.login()
-        request = urllib.request.Request("%s/id/%s" % (self._server, identifier))
-        request.get_method = lambda: "PUT"
-        if data:
-            request.add_header("Content-Type", "text/plain; charset=UTF-8")
-            request.data = formatAnvlFromDict(data).encode("UTF-8")
-        return self._get_request(request)
-
-    def mint(self, shoulder, data=None):
-        '''Mint a new identifier on EZID. Return the identifier if successful
-        '''
-        # if not self.session_id:
-        #     self.session_id = self.login()
-        userAndPass = b64encode(b"cornell.library:jlnLG3f1RmUn").decode("ascii")
-        request = urllib.request.Request("%s/shoulder/doi:10.23655" % (self._server))
-        request.add_header("Authorization","Basic Y29ybmVsbC5saWJyYXJ5OmpsbkxHM2YxUm1Vbg==")
-        request.get_method = lambda: "POST"
-        if data:
-            request.add_header("Content-Type", "text/plain; charset=UTF-8")
-            request.data = formatAnvlFromDict(data).encode("UTF-8")
-        return self._get_request(request)
-
-    def delete(self, identifier):
-        if not self.session_id:
-            self.session_id = self.login()
-        request = urllib.request.Request("%s/id/%s" % (self._server, identifier))
-        request.get_method = lambda: "DELETE"
-        request.add_header("Content-Type", "text/plain; charset=UTF-8")
-        return self._get_request(request)
-
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# Begin command line code
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-def process_args(args):
-    if len(args) < 3: _usageError()
-    credentials = session_id = identifier = data = None
-    if ":" in args[1]:
-        u, p = args[1].split(':', 1)
-        credentials = dict(username=u, password=p)
-    elif args[1] != "-":
-        sessionid=args[1]
-    operation = [o for o in operations if o.startswith(args[2])]
-    if len(operation) != 1: _usageError()
-    operation = operation[0]
-    if (type(operations[operation]) is int and\
-        len(args)-3 != operations[operation]) or\
-        (type(operations[operation]) is types.LambdaType and\
-        not operations[operation](len(args)-3)): _usageError()
-    identifier = args[3] if len(args) > 3 else None
-    if operation in ["mint", "create", "update",] :
-        if len(args) > 4:
-            l = args[4:]
-            data = {}
-            for i in range(0, len(l), 2):
-                data[l[i]] = l[i+1]
-    return credentials, session_id, operation, identifier, data
-
-def main(argvin=sys.argv):
-    '''Mimics client sample from api docs
-    '''
-    #opener, request, operation = processargs(argvin)
-    credentials, session_id, operation, identifier, data = process_args(argvin)
-    ezid = EZIDClient(SERVER, credentials=credentials, session_id=session_id)
-    try:
-        if operation == 'login':
-            print(ezid.login())
-        elif operation == 'view':
-            print(ezid.view(identifier))
-        elif operation == 'update':
-            if data:
-                print(ezid.update(identifier, data))
-        elif operation == 'delete':
-            print(ezid.delete(identifier))
-        elif operation == 'create':
-            print(ezid.create(identifier, data))
-        elif operation == 'mint':
-            print('MINTING\n')
-            print(ezid.mint(identifier, data))
-    except urllib.error.HTTPError as e:
-        print(e.code, e.msg)
-        if e.fp:
-            print(e.fp.read())
-
-if __name__=='__main__':
-    main(sys.argv)
+if operation == "mint":
+  shoulder = args[0]
+  if shoulder == "doi:10.23655":
+      _server = "https://ez.test.datacite.org"
+  if shoulder == "doi:10.7298":
+      _server = "https://ez.datacite.org"
+  if len(args) > 1:
+    data = formatAnvlRequest(args[1:])
+  else:
+    data = None
+  response = issueRequest("shoulder/"+encode(shoulder), "POST", data)
+  printAnvlResponse(response)
+elif operation == "create":
+  id = args[0]
+  if len(args) > 1:
+    data = formatAnvlRequest(args[1:])
+  else:
+    data = None
+  response = issueRequest("id/"+encode(id), "PUT", data)
+  printAnvlResponse(response)
+elif operation == "view":
+  id = args[0]
+  response = issueRequest("id/"+encode(id), "GET")
+  printAnvlResponse(response, sortLines=True)
+elif operation == "update":
+  id = args[0]
+  if len(args) > 1:
+    data = formatAnvlRequest(args[1:])
+  else:
+    data = None
+  response = issueRequest("id/"+encode(id), "POST", data)
+  printAnvlResponse(response)
+elif operation == "delete":
+  id = args[0]
+  response = issueRequest("id/"+encode(id), "DELETE")
+  printAnvlResponse(response)
+elif operation == "login":
+  response, headers = issueRequest("login", "GET", returnHeaders=True)
+  response += "\nsessionid: %s\n" %\
+    headers["set-cookie"].split(";")[0].split("=")[1]
+  printAnvlResponse(response)
+elif operation == "logout":
+  response = issueRequest("logout", "GET")
+  printAnvlResponse(response)
+elif operation == "status":
+  if len(args) > 0:
+    subsystems = "?subsystems=" + args[0]
+  else:
+    subsystems = ""
+  response = issueRequest("status"+subsystems, "GET")
+  printAnvlResponse(response)

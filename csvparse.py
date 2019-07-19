@@ -51,9 +51,9 @@ def testDate(ECdata, dateAfter):
         # elif record['dc.date.issued[]']:
         #     if year_re.match(record['dc.date.issued[]']):
         #         recdate = record['dc.date.issued[]']
-        if record['dc.date.issued[en_US]']:
-            if year_re.match(record['dc.date.issued[en_US]']):
-                recdate = record['dc.date.issued[en_US]']
+        if record['dc.date.issued']:
+            if year_re.match(record['dc.date.issued']):
+                recdate = record['dc.date.issued']
         else:
             with open('nodateETDs.txt', 'a') as fh:
                 fh.write(record['id'])
