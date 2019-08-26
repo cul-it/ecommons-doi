@@ -56,9 +56,9 @@ def main():
                         help="EZID creation username")
     parser.add_argument("-p", "--password", dest="password",
                         help="EZID creation password.")
-    parser.add_argument("-s", "--server", dest="shoulder",
+    parser.add_argument("-s", "--shoulder", dest="shoulder",
                         default="10.23655",
-                        help="Server defaults to 10.23655 for test. Set shoulder to 10.7298 for production")
+                        help="Shoulder defaults to 10.23655 for test. Set shoulder to 10.7298 for production")
     parser.add_argument("workingdir", help="Working directory containing ready \
                         ANVL files.")
 
