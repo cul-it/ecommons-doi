@@ -178,7 +178,7 @@ def issueRequest (path, method, data=None, returnHeaders=False,
     if e.fp != None:
       response = e.fp.read()
       if not response.endswith("\n"): response += "\n"
-      sys.stderr.write(str(un+pw))
+      sys.stderr.write(response)
     sys.exit(1)
 
 def printAnvlResponse (response, sortLines=False):
