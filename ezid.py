@@ -62,9 +62,11 @@ import time
 import types
 import urllib
 import urllib2
+from base64 import b64encode
+
 
 KNOWN_SERVERS = {
-  "p": "http://ezid.cdlib.org"
+  "p": "https://"
 }
 
 OPERATIONS = {
@@ -156,6 +158,7 @@ def issueRequest (path, method, data=None, returnHeaders=False,
   request.get_method = lambda: method
   if data:
     request.add_header("Content-Type", "text/plain; charset=UTF-8")
+    request.add_header("Authorization","BASIC "+auth)
     request.add_data(data.encode("UTF-8"))
   if _cookie: request.add_header("Cookie", _cookie)
   try:
@@ -204,7 +207,7 @@ def printAnvlResponse (response, sortLines=False):
 
 parser = optparse.OptionParser(formatter=MyHelpFormatter())
 parser.add_option("-d", action="store_true", dest="decode", default=False)
-parser.add_option("-e", action="store", dest="outputEncoding", default=None)
+parser.add_option("-e", action="store", dest="outputEncoding", default="UTF-8")
 parser.add_option("-o", action="store_true", dest="oneLine", default=False)
 parser.add_option("-t", action="store_true", dest="formatTimestamps",
   default=False)
@@ -232,6 +235,9 @@ operation = filter(lambda o: o.startswith(args[2]), OPERATIONS)
 if len(operation) != 1: parser.error("unrecognized or ambiguous operation")
 operation = operation[0]
 
+un = args[1].split(":")[0]
+pw = args[1].split(":")[1]
+auth = b64encode(b"%s:%s" % (un, pw)).decode("ascii") 
 args = args[3:]
 
 if (type(OPERATIONS[operation]) is int and\
@@ -244,6 +250,10 @@ if (type(OPERATIONS[operation]) is int and\
 
 if operation == "mint":
   shoulder = args[0]
+  if shoulder == "doi:10.23655":
+      _server = "https://ez.test.datacite.org"
+  if shoulder == "doi:10.7298":
+      _server = "https://ez.datacite.org"
   if len(args) > 1:
     data = formatAnvlRequest(args[1:])
   else:

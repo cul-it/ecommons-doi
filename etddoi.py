@@ -18,8 +18,9 @@ def main():
     parser.add_argument("-p", "--password", dest="password",
                         help="EZID creation password.")
     parser.add_argument("-s", "--shoulder", dest="shoulder",
-                        default="10.5072/FK2",
-                        help="DOI shoulder to use. Format 10.5072/FK2.")
+                        default="10.23655",
+                        help="Shoulder defaults to 10.23655 for test. Set shoulder to 10.7298 for production")
+    
     parser.add_argument("datafile", help="eCommons metadata worked from.")
 
     args = parser.parse_args()
