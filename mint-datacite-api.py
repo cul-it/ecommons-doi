@@ -12,6 +12,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 import base64
 
+#update the file datacite_creds.ini with the correct passwords before running
 # to run put the file you are loading into this directory
 # run with the command 'python mint-datacite-api.py -f yourfilename'
 # by default dois will be created in test. to create in prod do:
