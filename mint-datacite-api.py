@@ -3,13 +3,9 @@
 import requests
 import json
 import csv
-from requests.adapters import HTTPAdapter
 from dateutil import parser
 import configparser
 import argparse
-import requests
-
-from requests.auth import HTTPBasicAuth
 import base64
 
 #update the file datacite_creds.ini with the correct passwords before running
