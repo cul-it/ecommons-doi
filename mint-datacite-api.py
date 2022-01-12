@@ -9,7 +9,7 @@ import argparse
 import base64
 
 #update the file datacite_creds.ini with the correct passwords before running
-# to run put the file you are loading into this directory
+# to run, put the file you are loading into this directory and run from within this directory
 # run with the command 'python mint-datacite-api.py -f yourfilename'
 # by default dois will be created in test. to create in prod do:
 # 'python mint-datacite-api.py -f yourfilename -s prod'
@@ -119,6 +119,8 @@ with open(in_file) as csvfile:
 
 						"affiliation": [
 							{
+								"name": "Cornell University",
+								"schemeUri": "https://ror.org",
 								"affiliationIdentifier": "https://ror.org/05bnh6r87",
 								"affiliationIdentifierScheme": "ROR"
 							}
@@ -128,7 +130,7 @@ with open(in_file) as csvfile:
 			datacite = {}
 			datacite["data"] = build_datacite
 			new_doi = requests.post(url, headers=headers, data=(json.dumps(datacite))).json()
-			record['dc.identifier.doi'] = "http://doi.org/" + \
+			record['dc.identifier.doi'] = "https://doi.org/" + \
 				new_doi["data"]["id"]
 			print(new_doi)
 			writer.writerow(
