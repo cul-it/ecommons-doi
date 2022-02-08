@@ -8,7 +8,7 @@ Goal: take metadata export from eCommons (a relatively standard csv), upload the
 ***Don't put the credentials on github!***
 
 ### Update metadata
-The eCommons metadata export has many fields, mandatory fields are 
+The eCommons metadata export has many fields. Mandatory fields are listed below, other fields will be ignored.
 dc.contributor.author[]
 dc.title[]
 dc.identifier.uri
