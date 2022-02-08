@@ -1,13 +1,13 @@
 # ecommons-doi
 Goal: take metadata export from eCommons (a relatively standard csv), upload the appropriate parts to datacite, mint DOIs, and return DOIs in an appropriate format to upload back to eCommons.
 
-##How to use
-###Credentials
+## How to use
+### Credentials
 1. Make a local copy of "datacite_creds_example.ini", rename as "datacite_creds.ini" (expected in script)
 2. Get credentials from eCommons team or eCommons documentation in confluence, and populate datacite_creds.ini with both test and production credentials. 
 ***Don't put the credentials on github!***
 
-###Update metadata
+### Update metadata
 The eCommons metadata export has many fields, mandatory fields are 
 dc.contributor.author[]
 dc.title[]
@@ -17,7 +17,7 @@ ORCID
 
 ORCID is not recorded in eCommons, ORCID ids should be added from the ProQuest metadata prior to generating DOIs.
 
-##Run it!
+## Run it!
 Uses python3. 
 Put the metadata csv in the same local folder as te script. 
 Run from within the local directory where the script is stored.
