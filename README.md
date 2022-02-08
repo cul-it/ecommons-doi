@@ -8,21 +8,24 @@ Goal: take metadata export from eCommons (a relatively standard csv), upload the
 ***Don't put the credentials on github!***
 
 ### Update metadata
+
+
 The eCommons metadata export has many fields. Mandatory fields are listed below, other fields will be ignored.
-dc.contributor.author[]
-dc.title[]
-dc.identifier.uri
-dc.date.issued[]
-ORCID
+
+- dc.contributor.author[]
+- dc.title[]
+- dc.identifier.uri
+- dc.date.issued[]
+- ORCID
 
 ORCID is not recorded in eCommons, ORCID ids should be added from the ProQuest metadata prior to generating DOIs.
 
 ## Run it!
 Uses python3. 
-Put the metadata csv in the same local folder as te script. 
-Run from within the local directory where the script is stored.
-Run with the command 'python mint-datacite-api.py -f yourfilename'
-By default dois will be created in test. to create in prod do:
-'python mint-datacite-api.py -f yourfilename -s prod'
+- Put the metadata csv in the same local folder as the script. 
+- Run from within the local directory where the script is stored.
+- Run with the command 'python mint-datacite-api.py -f yourfilename'
+- By default dois will be created in test. to create in prod do:
+- 'python mint-datacite-api.py -f yourfilename -s prod'
 
 Output is a .csv file with the name of your file appended with "_update" that will have the new dois in it.
