@@ -1,7 +1,6 @@
 # ecommons-doi
 Goal: take metadata export from eCommons (a relatively standard csv), upload the appropriate parts to datacite, mint DOIs, and return DOIs in an appropriate format to upload back to eCommons.
 
-## How to use it:
 ## Set up the data:
 ### Credentials
 1. Make a local copy of "datacite_creds_example.ini", rename as "datacite_creds.ini" (expected in script)
