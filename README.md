@@ -29,3 +29,5 @@ Uses python3.
 - 'python mint-datacite-api.py -f yourfilename -s prod'
 
 Output is a .csv file with the name of your file appended with "_update" that will have the new dois in it.
+
+Note, 2 variants are available: mint-draft-datacite-api.py will mint DOIs in the "draft" status (rather than public). And updateDOI-datacite-api.py allows you to add a URL to a known DOI, and then publish changes (nb: this is not as well tested as the main script).
